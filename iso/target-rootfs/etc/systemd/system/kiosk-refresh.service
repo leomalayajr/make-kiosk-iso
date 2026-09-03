@@ -1,0 +1,8 @@
+[Unit]
+Description=Restart Offline Kiosk to check for application updates
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl try-restart kiosk.service

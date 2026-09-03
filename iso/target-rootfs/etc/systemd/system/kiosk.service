@@ -1,0 +1,46 @@
+[Unit]
+Description=Offline Kiosk kiosk
+After=systemd-user-sessions.service network-online.target local-fs.target
+Wants=network-online.target
+OnFailure=kiosk-failure.service
+# Only restart 3 times, then give up and trigger kiosk-failure.service.
+StartLimitBurst=3
+StartLimitIntervalSec=30
+
+[Service]
+User=appuser
+Group=appuser
+Environment=HOME=/home/appuser
+# PAMName=login starts appuser's systemd user manager.  Electron and
+# gnome-keyring must share that manager's single session bus; creating a second
+# bus with dbus-run-session makes gnome-keyring report discover_other_daemon.
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+RuntimeDirectory=kiosk
+# systeminformation reads board_serial directly, but Linux intentionally makes
+# the real DMI attribute root-only.  The installer copies only one selected
+# identity value here; this read-only bind exposes it without granting Electron
+# access to every privileged DMI field.
+BindReadOnlyPaths=/etc/kiosk-board-serial:/sys/devices/virtual/dmi/id/board_serial
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+# electron-updater exits cleanly after replacing the AppImage. Always restart
+# the complete kiosk session so the new version receives the normal display,
+# credential, keyring, and logging setup. KillMode=control-group (the default)
+# also removes the updater's short-lived direct child before this clean start.
+Restart=always
+RestartSec=2
+# Run as root (+ prefix) so chown succeeds — a regular user cannot chown
+ExecStartPre=+/usr/bin/touch /home/appuser/.Xauthority
+ExecStartPre=+/usr/bin/chown appuser:appuser /home/appuser/.Xauthority
+
+EnvironmentFile=-/etc/kiosk.env
+ExecStart=/usr/bin/startx /usr/local/bin/launch-electron.sh -- -nolisten tcp -keeptty
+
+[Install]
+WantedBy=multi-user.target

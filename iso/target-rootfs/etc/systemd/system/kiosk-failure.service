@@ -1,0 +1,14 @@
+[Unit]
+Description=Offline Kiosk kiosk failure diagnostics
+After=kiosk.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/kiosk-show-failure.sh
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+
+[Install]
+WantedBy=multi-user.target

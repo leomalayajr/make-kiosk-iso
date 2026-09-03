@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily randomized Offline Kiosk update check
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=4h
+AccuracySec=1m
+Persistent=true
+Unit=kiosk-refresh.service
+
+[Install]
+WantedBy=timers.target

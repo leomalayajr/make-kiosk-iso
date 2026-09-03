@@ -1,0 +1,19 @@
+[Unit]
+Description=Offline Kiosk offline installer
+After=systemd-user-sessions.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+Restart=on-failure
+RestartSec=2
+ExecStart=/usr/local/bin/kiosk-installer-ui.sh
+
+[Install]
+WantedBy=multi-user.target

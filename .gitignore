@@ -1,0 +1,30 @@
+# Generated ISO build products and package cache
+iso/work/
+iso/output/
+iso/input/
+iso/cache/
+iso/airootfs/
+# Optional legacy logger server kept locally
+logger-server/
+
+# Docker
+*.pid
+*.seccomp
+*.profile
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+.env
+.env.local
+.notes
+iso-arm64
+make-kiosk-iso-arm64.sh
+newrelic-log-relay/

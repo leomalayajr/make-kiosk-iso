@@ -1,0 +1,61 @@
+# =============================================================================
+# docker-compose.yml - beginner-friendly way to build + run the image.
+#
+#   Quick start:
+#     1. Put your exported Electron app in ./my-electron-app
+#        (the folder that contains your AppImage or your "linux-unpacked"
+#        binary produced by electron-builder).
+#     2. On the host, allow the container to talk to your screen ONCE:
+#          xhost +local:docker
+#     3. Build + run (window appears on your real monitor):
+#          docker compose up --build
+#     4. Stop:
+#          docker compose down
+#
+#   Headless / server use (no monitor): see GUIDE.md.
+# =============================================================================
+
+services:
+  electron-app:
+    build: .
+    image: arch-linux-kiosk:latest
+    container_name: arch-electron
+
+    # ----- Mounts -----
+    # 1) Your exported Electron app (looked at by the entrypoint).
+    # 2) Host X server socket so the window shows on your real monitor.
+    # 3) Keyboard + mouse devices, read-only.
+    volumes:
+      - ./my-electron-app:/home/appuser/app
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /dev/input:/dev/input:ro
+
+    # Tell the app which screen to draw on (your host's $DISPLAY).
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      # Optional overrides (see entrypoint.sh):
+      # - APP_EXEC=/home/appuser/app/my-app
+      # - APP_ARGS=--some-flag
+      # - RESOLUTION=1920x1080x24
+      - VNC_PASSWORD=${VNC_PASSWORD:-}
+
+    # GPU passthrough (Intel/AMD/Nvidia). If you have no dedicated GPU or hit
+    # errors, comment this out -> Electron falls back to software rendering.
+    devices:
+      - /dev/dri:/dev/dri
+
+    # Electron/Chromium needs a big shared-memory segment + host IPC.
+    shm_size: "2g"
+    ipc: host
+
+    # ----- Internet -----
+    # Default bridge networking already provides outbound internet + DNS.
+    # host mode is the simplest option and also helps with X11 + GPU access.
+    network_mode: host
+
+    # Restart automatically unless you stop it yourself.
+    restart: unless-stopped
+
+    # Lets you see logs / interact easily.
+    stdin_open: true
+    tty: true

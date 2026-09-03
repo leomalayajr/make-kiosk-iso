@@ -1,0 +1,53 @@
+# Packages installed into the offline target archive. Keep this list to the
+# kiosk runtime: it deliberately excludes the graphical installer, SSH, VNC,
+# Wi-Fi tooling, desktop environments, and package-management tooling.
+
+# Boot and hardware
+base
+linux
+linux-firmware
+amd-ucode
+intel-ucode
+systemd
+mkinitcpio
+grub
+iptables
+
+# Wired network and DNS (provided by systemd)
+systemd-resolvconf
+
+# Display, input, and graphics
+xorg-server
+xorg-xinit
+xorg-xrandr
+xf86-input-libinput
+xf86-video-vesa
+mesa
+libdrm
+libva
+intel-media-driver
+
+# Electron/Chromium runtime
+gtk3
+nss
+at-spi2-core
+libcups
+libxcomposite
+libxdamage
+libxrandr
+libxfixes
+libxkbcommon
+libxss
+libxtst
+pango
+cairo
+gdk-pixbuf2
+alsa-lib
+dbus
+libsecret
+gnome-keyring
+ca-certificates
+ttf-dejavu
+
+# Remote logger (optional — curl sends log lines to LOGGER_SERVER_URL)
+curl

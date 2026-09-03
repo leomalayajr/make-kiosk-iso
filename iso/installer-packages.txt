@@ -1,0 +1,36 @@
+# Packages for the temporary installer environment only.  Nothing in this
+# list is copied into the installed operating system unless it is also listed
+# in target-packages.txt.
+
+# Bootable Arch ISO base
+base
+linux
+linux-firmware
+amd-ucode
+intel-ucode
+mkinitcpio
+mkinitcpio-archiso
+syslinux
+grub
+edk2-shell
+
+# Offline disk installation tools
+arch-install-scripts
+gptfdisk
+parted
+dosfstools
+e2fsprogs
+util-linux
+zstd
+libarchive
+
+# Console installer runtime
+dbus
+bash
+coreutils
+findutils
+gawk
+grep
+sed
+file
+curl

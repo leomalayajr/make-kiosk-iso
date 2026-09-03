@@ -1,0 +1,82 @@
+# =============================================================================
+# MINIMAL package list for the kiosk ISO.
+# This REPLACES the releng package list entirely (130 -> ~40 packages).
+# Only what's needed to boot, show a display, run Electron, and have internet.
+# No desktop environment. No install tools. No disk utilities.
+# =============================================================================
+
+# --- Kernel + firmware (required to boot on real hardware) ---
+base
+linux
+linux-firmware
+amd-ucode
+intel-ucode
+
+# --- ISO boot infrastructure (required by archiso) ---
+mkinitcpio
+mkinitcpio-archiso
+syslinux
+grub
+edk2-shell
+efibootmgr
+
+# --- Init + networking (internet) ---
+systemd-resolvconf
+dhcpcd
+ethtool
+
+# --- VMware guest tools (display auto-resize, input, shared folders) ---
+open-vm-tools
+
+# --- Display server: Xorg only, NO desktop environment ---
+xorg-server
+xorg-xinit
+xorg-xrandr
+xorg-xinput
+xorg-xmessage
+xf86-input-libinput
+xf86-video-vesa
+
+# --- Graphics (OpenGL/EGL for Chromium/Electron) ---
+mesa
+libdrm
+glu
+
+# --- GTK3 (Electron links against libgtk-3.so.0 at startup) ---
+gtk3
+
+# --- Electron / Chromium runtime libraries ---
+nss
+at-spi2-core
+libcups
+libxcomposite
+libxdamage
+libxrandr
+libxfixes
+libxkbcommon
+libxss
+libxtst
+pango
+cairo
+gdk-pixbuf2
+
+# --- Audio (Electron may need ALSA) ---
+alsa-lib
+
+# --- Fonts (so text renders) ---
+ttf-dejavu
+
+# --- System plumbing ---
+dbus
+sudo
+bash
+zsh
+less
+
+# --- Remote debugging (optional: VNC into the live ISO) ---
+x11vnc
+xorg-xauth
+
+# --- Debugging tools ---
+curl
+usbutils
