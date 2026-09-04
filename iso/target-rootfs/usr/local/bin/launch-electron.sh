@@ -80,11 +80,10 @@ json_escape() {
 
 remote_log_payload() {
   local level=$1 message=$2 timestamp
-  timestamp=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)
-  printf '{"timestamp":"%s","level":"%s","message":"%s","version":"%s","logtype":"kiosk","service.name":"%s","service.namespace":"kiosk","deployment.environment.name":"%s","newrelic.source":"kiosk.kiosk"}' \
-    "$(json_escape "$timestamp")" "$(json_escape "$level")" "$(json_escape "$message")" \
-    "$(json_escape "$KIOSK_VERSION")" "$(json_escape "$NEW_RELIC_SERVICE_NAME")" \
-    "$(json_escape "$NEW_RELIC_ENVIRONMENT")"
+  timestamp=$(date +%s%3N)
+  printf '{"deployment.environment.name":"%s","level":"%s","logtype":"kiosk","message":"%s","newrelic.logPattern":"nr.DID_NOT_MATCH","newrelic.source":"kiosk.kiosk","service.name":"%s","service.namespace":"kiosk","timestamp":%s,"version":"%s"}' \
+    "$(json_escape "$NEW_RELIC_ENVIRONMENT")" "$(json_escape "$level")" "$(json_escape "$message")" \
+    "$(json_escape "$NEW_RELIC_SERVICE_NAME")" "$timestamp" "$(json_escape "$KIOSK_VERSION")"
 }
 
 send_new_relic_log() {

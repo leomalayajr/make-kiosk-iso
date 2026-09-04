@@ -642,6 +642,7 @@ main() {
   if wait "$install_pid"; then
     rm -f "$stage_file"
     show_complete
+    return 0
   fi
   failed_stage='the offline installation'
   [ ! -s "$stage_file" ] || failed_stage=$(tail -n 1 "$stage_file")
