@@ -8,6 +8,7 @@
 #     [--new-relic-log-enabled=true] \
 #     [--new-relic-log-endpoint=https://log-api.newrelic.com/log/v1] \
 #     [--new-relic-environment=production] \
+#     [--debug] \
 #     --logger-server-url=https://... \
 #     [--allow-override-fingerprint]
 #
@@ -129,6 +130,7 @@ CONFIG_VARIABLES=(
   FINGERPRINT API_KEY API_SECRET LOGGER_SERVER_URL
   NEW_RELIC_LOG_ENABLED NEW_RELIC_LOG_ENDPOINT NEW_RELIC_LICENSE_KEY
   NEW_RELIC_LICENSE_KEY_FILE NEW_RELIC_ENVIRONMENT NEW_RELIC_SERVICE_NAME
+  NEW_RELIC_LOGTYPE NEW_RELIC_SOURCE NEW_RELIC_SERVICE_NAMESPACE
   ALLOW_OVERRIDE_FINGERPRINT
 )
 declare -A INLINE_CONFIG=()
@@ -169,6 +171,10 @@ NEW_RELIC_LICENSE_KEY="${NEW_RELIC_LICENSE_KEY:-}"
 NEW_RELIC_LICENSE_KEY_FILE="${NEW_RELIC_LICENSE_KEY_FILE:-}"
 NEW_RELIC_ENVIRONMENT="${NEW_RELIC_ENVIRONMENT:-production}"
 NEW_RELIC_SERVICE_NAME="${NEW_RELIC_SERVICE_NAME:-kiosk-production}"
+NEW_RELIC_LOGTYPE="${NEW_RELIC_LOGTYPE:-kiosk}"
+NEW_RELIC_SOURCE="${NEW_RELIC_SOURCE:-kiosk.kiosk}"
+NEW_RELIC_SERVICE_NAMESPACE="${NEW_RELIC_SERVICE_NAMESPACE:-kiosk}"
+DEBUG_MODE=false
 ALLOW_OVERRIDE_FINGERPRINT="${ALLOW_OVERRIDE_FINGERPRINT:-0}"
 # 1024x768 is the fixed kiosk and installer display contract. Keep the public
 # flag for compatibility, but reject any value that would make an image behave
@@ -206,6 +212,7 @@ while [ "$#" -gt 0 ]; do
     --new-relic-license-key-file=*) NEW_RELIC_LICENSE_KEY_FILE=${1#*=} ;;
     --new-relic-log-endpoint=*) NEW_RELIC_LOG_ENDPOINT=${1#*=} ;;
     --new-relic-environment=*) NEW_RELIC_ENVIRONMENT=${1#*=} ;;
+    --debug) DEBUG_MODE=true ;;
     --allow-override-fingerprint) ALLOW_OVERRIDE_FINGERPRINT=1 ;;
     --resolution=*)
       [ "${1#*=}" = 1024x768 ] || die 'resolution is fixed at 1024x768 for the installer and kiosk'
@@ -216,6 +223,10 @@ while [ "$#" -gt 0 ]; do
   esac
   shift
 done
+
+if [ "$DEBUG_MODE" = true ] && [ "$NEW_RELIC_SERVICE_NAME" = kiosk-production ]; then
+  NEW_RELIC_SERVICE_NAME=kiosk-production-debug
+fi
 
 preflight
 
@@ -236,7 +247,11 @@ require_safe_value app-updater-cache-dir-name "$APP_UPDATER_CACHE_DIR_NAME"
 require_safe_value new-relic-log-endpoint "$NEW_RELIC_LOG_ENDPOINT"
 require_safe_value new-relic-environment "$NEW_RELIC_ENVIRONMENT"
 require_safe_value new-relic-service-name "$NEW_RELIC_SERVICE_NAME"
+require_safe_value new-relic-logtype "$NEW_RELIC_LOGTYPE"
+require_safe_value new-relic-source "$NEW_RELIC_SOURCE"
+require_safe_value new-relic-service-namespace "$NEW_RELIC_SERVICE_NAMESPACE"
 require_boolean new-relic-log-enabled "$NEW_RELIC_LOG_ENABLED"
+require_boolean debug-mode "$DEBUG_MODE"
 
 if [ "$NEW_RELIC_LOG_ENABLED" = true ]; then
   [ -z "$NEW_RELIC_LICENSE_KEY$NEW_RELIC_LICENSE_KEY_FILE" ] && die 'NEW_RELIC_LICENSE_KEY or NEW_RELIC_LICENSE_KEY_FILE is required when New Relic logging is enabled'
@@ -298,6 +313,7 @@ KIOSK_API_SECRET_B64=$(base64_value "$API_SECRET")
 KIOSK_RESOLUTION=$RESOLUTION
 KIOSK_UPDATE_FEED_URL_B64=$(base64_value "$UPDATE_FEED_URL")
 KIOSK_APP_UPDATER_CACHE_DIR_NAME_B64=$(base64_value "$APP_UPDATER_CACHE_DIR_NAME")
+KIOSK_DEBUG_MODE=$DEBUG_MODE
 INSTALL_MODE=wipe-first-disk
 INSTALL_UI=tty-bash
 NETWORK=wired-dhcp
@@ -315,6 +331,9 @@ if [ "$NEW_RELIC_LOG_ENABLED" = true ]; then
     printf 'KIOSK_NEW_RELIC_LOG_ENDPOINT_B64=%s\n' "$(base64_value "$NEW_RELIC_LOG_ENDPOINT")" >>"$target"
     printf 'KIOSK_NEW_RELIC_ENVIRONMENT_B64=%s\n' "$(base64_value "$NEW_RELIC_ENVIRONMENT")" >>"$target"
     printf 'KIOSK_NEW_RELIC_SERVICE_NAME_B64=%s\n' "$(base64_value "$NEW_RELIC_SERVICE_NAME")" >>"$target"
+    printf 'KIOSK_NEW_RELIC_LOGTYPE_B64=%s\n' "$(base64_value "$NEW_RELIC_LOGTYPE")" >>"$target"
+    printf 'KIOSK_NEW_RELIC_SOURCE_B64=%s\n' "$(base64_value "$NEW_RELIC_SOURCE")" >>"$target"
+    printf 'KIOSK_NEW_RELIC_SERVICE_NAMESPACE_B64=%s\n' "$(base64_value "$NEW_RELIC_SERVICE_NAMESPACE")" >>"$target"
 fi
 
 if [ "$ALLOW_OVERRIDE_FINGERPRINT" = "1" ]; then
@@ -339,6 +358,9 @@ EOF_ENV
     printf 'KIOSK_NEW_RELIC_LOG_ENDPOINT_B64=%s\n' "$(base64_value "$NEW_RELIC_LOG_ENDPOINT")" >>"$target"
     printf 'KIOSK_NEW_RELIC_ENVIRONMENT_B64=%s\n' "$(base64_value "$NEW_RELIC_ENVIRONMENT")" >>"$target"
     printf 'KIOSK_NEW_RELIC_SERVICE_NAME_B64=%s\n' "$(base64_value "$NEW_RELIC_SERVICE_NAME")" >>"$target"
+    printf 'KIOSK_NEW_RELIC_LOGTYPE_B64=%s\n' "$(base64_value "$NEW_RELIC_LOGTYPE")" >>"$target"
+    printf 'KIOSK_NEW_RELIC_SOURCE_B64=%s\n' "$(base64_value "$NEW_RELIC_SOURCE")" >>"$target"
+    printf 'KIOSK_NEW_RELIC_SERVICE_NAMESPACE_B64=%s\n' "$(base64_value "$NEW_RELIC_SERVICE_NAMESPACE")" >>"$target"
   fi
 }
 
@@ -351,6 +373,7 @@ printf "${CYAN}Offline Kiosk offline installer builder${NC}\n"
 printf 'App source: %s\n' "$APP_SOURCE"
 printf 'Install mode: wipe first non-USB disk (shown before Start)\n'
 printf 'Video mode: auto; enforced installer and kiosk resolution: %s\n' "$RESOLUTION"
+printf 'Debug mode: %s\n' "$DEBUG_MODE"
 
 BUILD_CONTEXT=$(mktemp -d "${TMPDIR:-/tmp}/kiosk-build-context.XXXXXX")
 prepare_app "$BUILD_CONTEXT/app"
@@ -368,6 +391,8 @@ if [ -n "$LOGGER_SERVER_URL" ]; then
 fi
 if [ "$NEW_RELIC_LOG_ENABLED" = true ]; then
   printf 'New Relic logging: enabled (endpoint: %s; key: supplied)\n' "$NEW_RELIC_LOG_ENDPOINT"
+  printf 'New Relic identity: %s / %s / %s\n' \
+    "$NEW_RELIC_SERVICE_NAME" "$NEW_RELIC_LOGTYPE" "$NEW_RELIC_SOURCE"
 fi
 
 BUILDER_IMAGE=kiosk-archiso-builder:latest

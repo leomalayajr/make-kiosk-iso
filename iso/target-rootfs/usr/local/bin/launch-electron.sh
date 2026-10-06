@@ -24,6 +24,9 @@ NEW_RELIC_LICENSE_KEY=''
 NEW_RELIC_LOG_ENDPOINT=''
 NEW_RELIC_ENVIRONMENT=''
 NEW_RELIC_SERVICE_NAME='kiosk-production'
+NEW_RELIC_LOGTYPE='kiosk'
+NEW_RELIC_SOURCE='kiosk.kiosk'
+NEW_RELIC_SERVICE_NAMESPACE='kiosk'
 NEW_RELIC_LAST_ERROR=''
 REMOTE_LOG_PID=''
 
@@ -57,13 +60,22 @@ if [ "${KIOSK_NEW_RELIC_LOG_ENABLED:-false}" = true ]; then
   NEW_RELIC_LOG_ENDPOINT=$(decode_remote_log_value "${KIOSK_NEW_RELIC_LOG_ENDPOINT_B64:-}" || true)
   NEW_RELIC_ENVIRONMENT=$(decode_remote_log_value "${KIOSK_NEW_RELIC_ENVIRONMENT_B64:-}" || true)
   NEW_RELIC_SERVICE_NAME=$(decode_remote_log_value "${KIOSK_NEW_RELIC_SERVICE_NAME_B64:-}" || true)
+  NEW_RELIC_LOGTYPE=$(decode_remote_log_value "${KIOSK_NEW_RELIC_LOGTYPE_B64:-}" || true)
+  NEW_RELIC_SOURCE=$(decode_remote_log_value "${KIOSK_NEW_RELIC_SOURCE_B64:-}" || true)
+  NEW_RELIC_SERVICE_NAMESPACE=$(decode_remote_log_value "${KIOSK_NEW_RELIC_SERVICE_NAMESPACE_B64:-}" || true)
   NEW_RELIC_SERVICE_NAME="${NEW_RELIC_SERVICE_NAME:-kiosk-production}"
-  if [ -z "$NEW_RELIC_LICENSE_KEY" ] || [ -z "$NEW_RELIC_LOG_ENDPOINT" ] || [ -z "$NEW_RELIC_ENVIRONMENT" ] || [ -z "$NEW_RELIC_SERVICE_NAME" ] || ! is_new_relic_log_endpoint "$NEW_RELIC_LOG_ENDPOINT"; then
+  NEW_RELIC_LOGTYPE="${NEW_RELIC_LOGTYPE:-kiosk}"
+  NEW_RELIC_SOURCE="${NEW_RELIC_SOURCE:-kiosk.kiosk}"
+  NEW_RELIC_SERVICE_NAMESPACE="${NEW_RELIC_SERVICE_NAMESPACE:-kiosk}"
+  if [ -z "$NEW_RELIC_LICENSE_KEY" ] || [ -z "$NEW_RELIC_LOG_ENDPOINT" ] || [ -z "$NEW_RELIC_ENVIRONMENT" ] || [ -z "$NEW_RELIC_SERVICE_NAME" ] || [ -z "$NEW_RELIC_LOGTYPE" ] || [ -z "$NEW_RELIC_SOURCE" ] || [ -z "$NEW_RELIC_SERVICE_NAMESPACE" ] || ! is_new_relic_log_endpoint "$NEW_RELIC_LOG_ENDPOINT"; then
     echo '[WARN] New Relic logging configuration is invalid; New Relic logging disabled' >>"$LOG_FILE"
     NEW_RELIC_LICENSE_KEY=''
     NEW_RELIC_LOG_ENDPOINT=''
     NEW_RELIC_ENVIRONMENT=''
     NEW_RELIC_SERVICE_NAME='kiosk-production'
+    NEW_RELIC_LOGTYPE='kiosk'
+    NEW_RELIC_SOURCE='kiosk.kiosk'
+    NEW_RELIC_SERVICE_NAMESPACE='kiosk'
   fi
 fi
 
@@ -81,9 +93,11 @@ json_escape() {
 remote_log_payload() {
   local level=$1 message=$2 timestamp
   timestamp=$(date +%s%3N)
-  printf '{"deployment.environment.name":"%s","level":"%s","logtype":"kiosk","message":"%s","newrelic.logPattern":"nr.DID_NOT_MATCH","newrelic.source":"kiosk.kiosk","service.name":"%s","service.namespace":"kiosk","timestamp":%s,"version":"%s"}' \
-    "$(json_escape "$NEW_RELIC_ENVIRONMENT")" "$(json_escape "$level")" "$(json_escape "$message")" \
-    "$(json_escape "$NEW_RELIC_SERVICE_NAME")" "$timestamp" "$(json_escape "$KIOSK_VERSION")"
+  printf '{"deployment.environment.name":"%s","level":"%s","logtype":"%s","message":"%s","newrelic.logPattern":"nr.DID_NOT_MATCH","newrelic.source":"%s","service.name":"%s","service.namespace":"%s","timestamp":%s,"version":"%s"}' \
+    "$(json_escape "$NEW_RELIC_ENVIRONMENT")" "$(json_escape "$level")" \
+    "$(json_escape "$NEW_RELIC_LOGTYPE")" "$(json_escape "$message")" \
+    "$(json_escape "$NEW_RELIC_SOURCE")" "$(json_escape "$NEW_RELIC_SERVICE_NAME")" \
+    "$(json_escape "$NEW_RELIC_SERVICE_NAMESPACE")" "$timestamp" "$(json_escape "$KIOSK_VERSION")"
 }
 
 send_new_relic_log() {
@@ -141,6 +155,13 @@ if [ -n "$NEW_RELIC_LICENSE_KEY" ] || [ -n "$LOGGER_SERVER_URL" ]; then
       remote_level="INFO"
       if [[ "$line" =~ ^\[([A-Z]+)\] ]]; then
         remote_level="${BASH_REMATCH[1]}"
+      elif [[ "$line" == *":ERROR:"* ]]; then
+        remote_level="ERROR"
+      elif [[ "$line" == *":WARNING:"* ]]; then
+        remote_level="WARN"
+      fi
+      if [ "${KIOSK_DEBUG_MODE:-false}" = true ] && [ "$remote_level" = INFO ]; then
+        remote_level=DEBUG
       fi
       remote_log "$remote_level" "$line"
     done
@@ -480,6 +501,10 @@ export NODE_ENV=development
 # and silently falls back to no encryption.
 export XDG_CURRENT_DESKTOP="${XDG_CURRENT_DESKTOP:-GNOME}"
 electron_args=(--no-sandbox --password-store=gnome-libsecret --window-size=1024,768 --force-device-scale-factor=1)
+if [ "${KIOSK_DEBUG_MODE:-false}" = true ]; then
+  electron_args+=(--verbose --devtools)
+  echo '[INFO] Electron verbose logging and DevTools enabled' >>"$LOG_FILE"
+fi
 
 if [ -n "$REMOTE_LOG_PID" ]; then
   trap 'kill '"$REMOTE_LOG_PID"' 2>/dev/null; wait '"$REMOTE_LOG_PID"' 2>/dev/null || true' EXIT

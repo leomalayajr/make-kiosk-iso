@@ -28,3 +28,9 @@ Thumbs.db
 iso-arm64
 make-kiosk-iso-arm64.sh
 newrelic-log-relay/
+
+# Private configuration, agent context, and generated application bundles
+.env.*
+.serena/
+*.AppImage
+*.iso

@@ -133,6 +133,8 @@ contains "$TARGET_ROOT/usr/local/bin/launch-electron.sh" 'gpu-attempted' 'GPU la
 contains "$TARGET_ROOT/usr/local/bin/launch-electron.sh" 'disable-gpu' 'software-safe Electron flags available'
 contains "$TARGET_ROOT/usr/local/bin/launch-electron.sh" 'export APPIMAGE=' 'launcher enables the AppImage updater'
 contains "$TARGET_ROOT/usr/local/bin/launch-electron.sh" 'KIOSK_APP_UPDATER_CACHE_DIR_NAME_B64' 'launcher reads updater cache configuration'
+contains "$TARGET_ROOT/usr/local/bin/launch-electron.sh" 'KIOSK_DEBUG_MODE' 'launcher reads debug-mode configuration'
+contains "$TARGET_ROOT/usr/local/bin/launch-electron.sh" 'electron_args\+=\(--verbose --devtools\)' 'debug mode passes verbose and DevTools flags to Electron'
 contains "$TARGET_ROOT/usr/local/bin/launch-electron.sh" 'FIXED_RESOLUTION=1024x768' 'kiosk resolution is fixed at 1024x768'
 contains "$TARGET_ROOT/usr/local/bin/launch-electron.sh" 'window-size=1024,768' 'Electron window is forced to 1024x768'
 contains "$TARGET_ROOT/etc/X11/xorg.conf.d/60-kiosk-display.conf" 'Modes "1024x768"' 'kiosk Xorg mode is fixed at 1024x768'
